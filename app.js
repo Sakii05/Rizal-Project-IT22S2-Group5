@@ -407,13 +407,18 @@ function initFactToast() {
     do { idx = Math.floor(Math.random() * facts.length); } while (idx === lastIndex);
     lastIndex = idx;
     textEl.textContent = facts[idx];
+    toast.classList.remove('fade-out');
     toast.classList.add('show');
     clearTimeout(autoHide);
-    autoHide = setTimeout(hideFact, 6000);
+    autoHide = setTimeout(hideFact, 5000);
   }
 
   function hideFact() {
-    toast.classList.remove('show');
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      toast.classList.remove('show');
+      toast.classList.remove('fade-out');
+    }, 500);
   }
 
   btn.addEventListener('click', showFact);
