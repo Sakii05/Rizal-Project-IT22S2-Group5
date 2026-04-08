@@ -42,6 +42,9 @@ function initApp() {
   renderTravels();
   renderGroup();
   renderGallery();
+  renderFamily();  
+  renderMedia();
+  renderReferences();
   initTheme();
   initSearch();
   initFactToast();
@@ -49,6 +52,7 @@ function initApp() {
   initNavHighlight();
   initNavScroll();
   initHamburger();
+
 }
 
 // ============================================================
@@ -138,14 +142,15 @@ function renderWorks() {
         <blockquote class="work-significance">${work.significance}</blockquote>
         <div class="characters-title">Major Characters</div>
         <div class="characters-grid">
-          ${work.characters.map(char => `
-            <div class="character-card">
-              <div class="char-archetype">${char.archetype}</div>
-              <div class="char-name">${char.name}</div>
-              <div class="char-role">${char.role}</div>
-              <div class="char-desc">${char.description}</div>
-            </div>
-          `).join('')}
+         ${work.characters.map(char => `
+  <div class="character-card">
+    ${char.image ? `<img src="${char.image}" alt="${char.name}" class="char-img" onerror="this.style.display='none'" />` : ''}
+    <div class="char-archetype">${char.archetype}</div>
+    <div class="char-name">${char.name}</div>
+    <div class="char-role">${char.role}</div>
+    <div class="char-desc">${char.description}</div>
+  </div>
+`).join('')}
         </div>
       </div>
     </div>
@@ -161,15 +166,22 @@ function renderTravels() {
 
   grid.innerHTML = travels.map((place, i) => `
     <div class="travel-card reveal" style="--travel-color:${place.color}; transition-delay:${(i % 4) * 0.07}s">
-      <div class="travel-flag">${place.flag}</div>
-      <div class="travel-location">
-        <div class="travel-city">${place.city}</div>
-        <div class="travel-country">${place.country}</div>
-      </div>
-      <div class="travel-years">${place.years}</div>
-      <div class="travel-purpose">${place.purpose}</div>
-      <div class="travel-detail">${place.detail}</div>
+  ${place.image ? `
+    <div class="travel-img-wrapper">
+      <img src="${place.image}" alt="${place.city}" class="travel-img" onerror="this.style.display='none'" />
     </div>
+  ` : ''}
+  <div class="travel-card-body">
+    <div class="travel-flag">${place.flag}</div>
+    <div class="travel-location">
+      <div class="travel-city">${place.city}</div>
+      <div class="travel-country">${place.country}</div>
+    </div>
+    <div class="travel-years">${place.years}</div>
+    <div class="travel-purpose">${place.purpose}</div>
+    <div class="travel-detail">${place.detail}</div>
+  </div>
+</div>
   `).join('');
 }
 
@@ -190,7 +202,10 @@ function renderGroup() {
   const teamGrid = document.getElementById('teamGrid');
   teamGrid.innerHTML = group.members.map((member, i) => `
     <div class="member-card reveal" style="--member-color:${member.color}; transition-delay:${i * 0.08}s">
-      <span class="member-emoji">${member.emoji}</span>
+      ${member.photo
+  ? `<img src="${member.photo}" alt="${member.name}" class="member-avatar" onerror="this.style.display='none'" />`
+  : `<span class="member-emoji">${member.emoji}</span>`
+}
       <div class="member-role">${member.role}</div>
       <div class="member-name">${member.name}</div>
       <div class="member-desc">${member.description}</div>
@@ -221,6 +236,62 @@ function renderGallery() {
       </div>
     </div>
   `).join('');
+}
+
+// ============================================================
+// RENDER: FAMILY
+// ============================================================
+function renderFamily() {
+  const { family } = DATA.biography;
+  const container = document.getElementById('familyGrid');
+  if (!container || !family) return;
+
+  // Separate parents from siblings
+  const parents = family.filter(m => m.relation === 'Father' || m.relation === 'Mother');
+  const siblings = family.filter(m => m.relation !== 'Father' && m.relation !== 'Mother');
+
+  function buildCard(member, i, isRizalSibling = false) {
+    const isJose = member.relation.includes('7th');
+    return `
+      <div class="family-card reveal ${isJose ? 'family-card--jose' : ''}" style="transition-delay:${i * 0.07}s">
+        <div class="family-img-wrapper">
+          <img
+            src="${member.image}"
+            alt="${member.name}"
+            class="family-img"
+            onerror="this.closest('.family-img-wrapper').innerHTML='<div class=\\'family-img-placeholder\\'>${member.name.charAt(0)}</div>'"
+          />
+          ${isJose ? '<div class="family-jose-badge">The Hero</div>' : ''}
+        </div>
+        <div class="family-card-body">
+          <div class="family-relation">${member.relation}</div>
+          <div class="family-name">${member.name}</div>
+          <div class="family-years">${member.years}</div>
+          <p class="family-desc">${member.description}</p>
+          <div class="family-note">
+            <span class="family-note-icon">✦</span>
+            ${member.note}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="family-subsection">
+      <div class="family-subsection-label">Parents</div>
+      <div class="family-subgrid family-subgrid--parents">
+        ${parents.map((m, i) => buildCard(m, i)).join('')}
+      </div>
+    </div>
+    <div class="family-subsection">
+      <div class="family-subsection-label">The 11 Children — in Birth Order</div>
+      <div class="family-birth-order-note">José Rizal was the <strong>7th child</strong></div>
+      <div class="family-subgrid">
+        ${siblings.map((m, i) => buildCard(m, i)).join('')}
+      </div>
+    </div>
+  `;
 }
 
 // ============================================================
@@ -501,3 +572,152 @@ function escapeHtml(str) {
 // BOOT
 // ============================================================
 document.addEventListener('DOMContentLoaded', fetchData);
+
+// ============================================================
+// RENDER: MEDIA
+// ============================================================
+function renderMedia() {
+  const media = DATA.media;
+  const mediaSection = document.querySelector('.media-section');
+  if (!mediaSection || !media) return;
+
+  function getVideoId(url) {
+  try {
+    const u = new URL(url);
+    // youtu.be/VIDEO_ID format
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1).split('?')[0];
+    }
+    // youtube.com/watch?v=VIDEO_ID format
+    return u.searchParams.get('v');
+  } catch { return ''; }
+}
+
+  const categories = ['All', 'Film', 'Documentary', 'Poetry', 'Summary'];
+  let currentIndex = 0;
+  let currentFiltered = [...media];
+
+  mediaSection.innerHTML = `
+    <h3 class="subsection-title">Videos & Documentaries</h3>
+    <div class="media-filter" id="mediaFilter">
+      ${categories.map((cat, i) => `
+        <button class="media-filter-btn ${i === 0 ? 'active' : ''}" data-cat="${cat}">${cat}</button>
+      `).join('')}
+    </div>
+    <div class="media-carousel-wrapper">
+      <button class="media-arrow" id="mediaLeft">&#8592;</button>
+      <div class="media-carousel" id="mediaCarousel"></div>
+      <button class="media-arrow" id="mediaRight">&#8594;</button>
+    </div>
+    <div class="media-dots" id="mediaDots"></div>
+  `;
+
+  const carousel = document.getElementById('mediaCarousel');
+  const leftBtn = document.getElementById('mediaLeft');
+  const rightBtn = document.getElementById('mediaRight');
+  const dotsContainer = document.getElementById('mediaDots');
+
+  function updateCarousel() {
+    const visible = currentFiltered.slice(currentIndex, currentIndex + 3);
+
+    carousel.innerHTML = visible.map((item) => {
+      const videoId = getVideoId(item.url);
+      // Use YouTube's high-quality thumbnail; fall back to medium quality
+      const thumbUrl = videoId
+        ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+        : '';
+
+      return `
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="media-card">
+          <div class="media-thumb-wrapper">
+            ${thumbUrl
+              ? `<img
+                   src="${thumbUrl}"
+                   alt="${item.title}"
+                   class="media-thumb-img"
+                   loading="lazy"
+                   onerror="this.closest('.media-thumb-wrapper').classList.add('thumb-error')"
+                 />`
+              : ''
+            }
+            <div class="media-thumb-fallback">
+              <div class="media-yt-icon">▶</div>
+            </div>
+            <span class="media-category-badge">${item.category}</span>
+            <div class="media-play-overlay">
+              <div class="media-play-btn">▶</div>
+            </div>
+          </div>
+          <div class="media-card-body">
+            <div class="media-channel">${item.channel} · ${item.year}</div>
+            <div class="media-title">${item.title}</div>
+            <p class="media-desc">${item.description}</p>
+            <div class="media-watch-link">Watch on YouTube ↗</div>
+          </div>
+        </a>
+      `;
+    }).join('');
+
+    // Dots
+    const totalPages = Math.ceil(currentFiltered.length / 3);
+    const currentPage = Math.floor(currentIndex / 3);
+    dotsContainer.innerHTML = Array.from({length: totalPages}, (_, i) => `
+      <span class="media-dot ${i === currentPage ? 'active' : ''}"></span>
+    `).join('');
+
+    leftBtn.disabled = currentIndex === 0;
+    rightBtn.disabled = currentIndex + 3 >= currentFiltered.length;
+    leftBtn.style.opacity = leftBtn.disabled ? '0.3' : '1';
+    rightBtn.style.opacity = rightBtn.disabled ? '0.3' : '1';
+  }
+
+  leftBtn.addEventListener('click', () => {
+    if (currentIndex > 0) { currentIndex = Math.max(0, currentIndex - 3); updateCarousel(); }
+  });
+
+  rightBtn.addEventListener('click', () => {
+    if (currentIndex + 3 < currentFiltered.length) { currentIndex += 3; updateCarousel(); }
+  });
+
+  document.getElementById('mediaFilter').querySelectorAll('.media-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.media-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFiltered = btn.dataset.cat === 'All' ? [...media] : media.filter(m => m.category === btn.dataset.cat);
+      currentIndex = 0;
+      updateCarousel();
+    });
+  });
+
+  updateCarousel();
+}
+
+// ============================================================
+// RENDER: REFERENCES
+// ============================================================
+function renderReferences() {
+  const { references } = DATA;
+  const container = document.getElementById('referencesContainer');
+  if (!container || !references) return;
+
+  container.innerHTML = references.map(category => `
+    <div class="ref-category reveal">
+      <div class="ref-category-header">
+        <span class="ref-badge" style="--badge-color:${category.badgeColor}">${category.badge}</span>
+        <h3 class="ref-category-title">${category.category}</h3>
+      </div>
+      <div class="ref-list">
+        ${category.sources.map(source => `
+          <div class="ref-item">
+            <div class="ref-item-left">
+              <span class="ref-type-tag">${source.type}</span>
+              <div class="ref-title">${source.title}</div>
+              <div class="ref-author">${source.author}</div>
+            </div>
+            <div class="ref-detail">${source.detail}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
